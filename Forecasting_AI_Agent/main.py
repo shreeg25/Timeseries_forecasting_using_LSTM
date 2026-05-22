@@ -7,8 +7,6 @@ os.environ["OPENBLAS_CORETYPE"] = "Generic"
 os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = "0"
 os.environ["MKL_DEBUG_CPU_TYPE"] = "5"
 os.environ["PANDAS_FUTURE_INFER_STRING_DTYPE"] = "0"
-import sys
-sys.modules['pyarrow'] = None 
 
 print(" [System Initializing]: Math overrides applied successfully...")
 import pandas as pd
