@@ -1,37 +1,66 @@
-# main.py (Temporary Diagnostic Version)
-print("🏁 [Diagnostic]: Script execution started.")
-
-print("🔍 Testing import: os, sys...")
+# main.py
 import os
-import sys
-
-os.environ["OPENBLAS_MAIN_FREE"] = "1"
-os.environ["MKL_DEBUG_CPU_TYPE"] = "5"
-os.environ["OMP_NUM_THREADS"] = "1"
-
-print("🔍 Testing import: pandas...")
 import pandas as pd
+from agent import run_autonomous_forecasting_agent
+from utils import load_data, preprocess_airline_data, plot_forecast
 
-print("🔍 Testing import: numpy...")
-import numpy as np
+def main():
+    print("🎬 [System Initializing]: Setting up Time Series AI Agent Environment...")
 
-print("🔍 Testing import: statsmodels (Deep API)...")
-import statsmodels.api as sm
+    # 1. Path to your dataset 
+    # (Update 'airline-passengers.csv' to your actual local file name or path if different)
+    data_file_path = "airline-passengers.csv" 
+    
+    if not os.path.exists(data_file_path):
+        raise FileNotFoundError(
+            f"Could not find '{data_file_path}' in the directory. "
+            f"Please ensure your time series CSV file is placed in this root folder."
+        )
 
-print("🔍 Testing import: statsmodels tools...")
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.seasonal import seasonal_decompose
+    # 2. Load and Preprocess data using your robust utils.py engine
+    raw_data = load_data(data_file_path)
+    processed_df = preprocess_airline_data(raw_data)
+    
+    # Define the target column (for airline data, it's 'Passengers')
+    target_column = 'Passengers'
+    
+    # 3. Simulate real-world qualitative business context
+    # Try changing this text string later to see how the agent's routing behavior shifts!
+    business_context = """
+    We are looking at standard historical travel demand patterns. 
+    Macroeconomic indicators are steady, and there are no unprecedented 
+    market disruptions or flash promotions expected in the coming weeks.
+    """
 
-print("🔍 Testing import: scikit-learn...")
-from sklearn.preprocessing import MinMaxScaler
+    # 4. Define the forecasting horizon (e.g., predict the next 12 steps/months)
+    forecast_horizon = 12
 
-print("🔍 Testing import: openai...")
-from openai import OpenAI
+    # 5. Fire up the Agent Loop!
+    # The agent will look at the length, test for seasonality, read the context,
+    # apply stationarity transformations, train, and return final inverted predictions.
+    final_predictions = run_autonomous_forecasting_agent(
+        df=processed_df,
+        target_col=target_column,
+        business_context=business_context,
+        horizon=forecast_horizon
+    )
 
-print("🔍 Testing import: pydantic...")
-from pydantic import BaseModel, Field
+    # 6. Output and Visualizations
+    print("\n📊 --- AGENT FORECAST RUN SUCCESSFUL ---")
+    print("Generated Predictions:")
+    print(final_predictions)
 
-print("🔍 Testing import: python-dotenv...")
-from dotenv import load_dotenv
+    # Split historical data into train and a placeholder 'test' window for plotting
+    train_slice = processed_df[target_column].iloc[:-forecast_horizon]
+    test_slice = processed_df[target_column].iloc[-forecast_horizon:]
 
-print("🎉 [SUCCESS]: All core libraries imported perfectly without freezing!")
+    print("\n📈 Visualizing the agent's selected path output...")
+    plot_forecast(
+        train=train_slice,
+        test=test_slice,
+        forecast=final_predictions,
+        title=f"AI Agent Forecast Output Tracker ({final_predictions.name})"
+    )
+
+if __name__ == "__main__":
+    main()
