@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 from typing import Literal
-from openai import OpenAI
+from groq import Groq
 from statsmodels.tsa.seasonal import seasonal_decompose
 from dotenv import load_dotenv
 
@@ -25,7 +25,8 @@ def hybrid_agent_router(df: pd.DataFrame, target_col: str, business_context: str
     business context to determine the optimal forecasting path.
     """
     # this fetches the key from .env file
-    client = OpenAI() 
+    import json
+    client = Groq()
     data_size = len(df)
     
     # ─── PHASE 1: HARD DETERMINISTIC GATEKEEPER ───
@@ -74,16 +75,16 @@ def hybrid_agent_router(df: pd.DataFrame, target_col: str, business_context: str
     """
     
     # Call OpenAI using the native Structured Outputs parse interface
-    completion = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        response_format=RouterDecision,
+    completion = client.chat.completions.create(
+    model="llama3-8b-8192",
+    messages=[
+        {"role": "system", "content": system_prompt + "\n\nRespond ONLY with valid JSON with keys 'selected_path' and 'reasoning'. No markdown, no extra text."},
+        {"role": "user", "content": user_prompt}
+        ]
     )
-    
-    decision = completion.choices[0].message.parsed
+    raw = completion.choices[0].message.content.strip()
+    parsed = json.loads(raw)
+    decision = RouterDecision(**parsed)
     print(f"\n🧠 [Agent Decision Reasoning]: {decision.reasoning}")
     return decision.selected_path
 
