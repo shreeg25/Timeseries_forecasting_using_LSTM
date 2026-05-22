@@ -3,7 +3,7 @@ import numpy as np
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.preprocessing import MinMaxScaler
 import os
-from .utils import calculate_metrics, prepare_data_for_lstm
+from utils import calculate_metrics, prepare_data_for_lstm
 from statsmodels.tsa.stattools import adfuller
 import sys
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -75,7 +75,8 @@ def run_lstm_forecast(data, horizon=30):
     
     test_predictions = scaler.inverse_transform(np.array(test_predictions).reshape(-1, 1))
     
-    forecast = pd.Series(test_predictions.flatten(), index=data.index)
+    future_index = pd.date_range(start=last_date, periods=horizon + 1, freq='MS')[1:]
+    forecast = pd.Series(test_predictions.flatten(), index=future_index)
     
     metrics = calculate_metrics(data, forecast)
     
