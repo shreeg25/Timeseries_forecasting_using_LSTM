@@ -1,11 +1,22 @@
 # main.py
 import os
+import sys 
+
+# THE NUCLEAR CP    U BYPASS: Force NumPy/OpenBLAS to skip all hardware profiling
+os.environ["OPENBLAS_CORETYPE"] = "Generic"
+os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = "0"
+os.environ["MKL_DEBUG_CPU_TYPE"] = "5"
+os.environ["PANDAS_FUTURE_INFER_STRING_DTYPE"] = "0"
+import sys
+sys.modules['pyarrow'] = None 
+
+print(" [System Initializing]: Math overrides applied successfully...")
 import pandas as pd
 from agent import run_autonomous_forecasting_agent
 from utils import load_data, preprocess_airline_data, plot_forecast
 
 def main():
-    print("🎬 [System Initializing]: Setting up Time Series AI Agent Environment...")
+    print(" [System Initializing]: Setting up Time Series AI Agent Environment...")
 
     # 1. Path to your dataset 
     # (Update 'airline-passengers.csv' to your actual local file name or path if different)
@@ -46,7 +57,7 @@ def main():
     )
 
     # 6. Output and Visualizations
-    print("\n📊 --- AGENT FORECAST RUN SUCCESSFUL ---")
+    print("\n --- AGENT FORECAST RUN SUCCESSFUL ---")
     print("Generated Predictions:")
     print(final_predictions)
 
@@ -54,7 +65,7 @@ def main():
     train_slice = processed_df[target_column].iloc[:-forecast_horizon]
     test_slice = processed_df[target_column].iloc[-forecast_horizon:]
 
-    print("\n📈 Visualizing the agent's selected path output...")
+    print("\n Visualizing the agent's selected path output...")
     plot_forecast(
         train=train_slice,
         test=test_slice,
