@@ -2,14 +2,10 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 from typing import Literal
-from groq import Groq
 from statsmodels.tsa.seasonal import seasonal_decompose
-from dotenv import load_dotenv
 
 # Importing components from tools.py
 from tools import DataTransformer, run_linear_forecast, run_lstm_forecast
-
-load_dotenv()
 
 # 1. Define the structured output schema for the LLM Router
 class RouterDecision(BaseModel):
@@ -19,74 +15,30 @@ class RouterDecision(BaseModel):
     )
 
 # 2. Define the Hybrid Data + Context Router
-def hybrid_agent_router(df: pd.DataFrame, target_col: str, business_context: str) -> str:
-    """
-    Analyzes the structural properties of the dataframe alongside qualitative 
-    business context to determine the optimal forecasting path.
-    """
-    # this fetches the key from .env file
-    import json
-    client = Groq()
+def hybrid_agent_router(df, target_col, business_context):
     data_size = len(df)
-    
-    # ─── PHASE 1: HARD DETERMINISTIC GATEKEEPER ───
-    # If data is critically small, skip the LLM and deep learning entirely to avoid failure
+
     if data_size < 24:
-        print("⚠️ [Agent Router]: Data footprint too small. Safe-routing to ARIMA.")
+        print("⚠️ [Agent Router]: Data too small. Routing to ARIMA.")
         return "ARIMA"
-        
-    # ─── PHASE 2: STATISTICAL METRIC EXTRACTION ───
-    # We attempt a seasonal decomposition (assuming a default cycle of 12 for monthly or 7 for daily)
-    # If the data is too short for a full period decomposition, we handle it gracefully
+
     try:
         decomposition = seasonal_decompose(df[target_col], model='additive', period=12, extrapolate_trend='freq')
         seasonal_variance = np.var(decomposition.seasonal)
         residual_variance = np.var(decomposition.resid)
         seasonality_ratio = seasonal_variance / (residual_variance + 1e-5)
-        has_seasonality = "Strong/Detected" if seasonality_ratio > 0.2 else "Weak/Absent"
     except Exception:
         seasonality_ratio = 0.0
-        has_seasonality = "Could not compute (Data too short/No clear frequency)"
 
-    # Format a concise summary for the LLM brain to read
-    data_profile = f"""
-    - Available Data Points: {data_size} rows
-    - Seasonality Metric Ratio: {seasonality_ratio:.4f} ({has_seasonality})
-    """
-
-    # ─── PHASE 3: COGNITIVE LLM ROUTING ───
-    system_prompt = """
-    You are the Lead Decision Engine of an Advanced Time Series AI Agent. Your job is to select the most optimized forecasting framework.
-    
-    ROUTING STANDARD OPERATING PROCEDURES:
-    1. Select 'ARIMA' if data is limited/small (< 200 rows) AND seasonality metrics state it is Weak/Absent.
-    2. Select 'SARIMA' if data is limited/small (< 200 rows) AND recurring periodic seasonal patterns are clearly detected.
-    3. Select 'LSTM' if data scale is highly expansive (> 200 rows) OR if the business context outlines complex, non-linear disruption (e.g., massive marketing shifts, unpredictable macro events) where traditional linear statistical models collapse.
-    """
-    
-    user_prompt = f"""
-    Evaluate the following technical profile and business parameters to lock in the track:
-    
-    DATA METRICS SUMMARY:
-    {data_profile}
-    
-    QUALITATIVE BUSINESS CONTEXT:
-    {business_context}
-    """
-    
-    # Call OpenAI using the native Structured Outputs parse interface
-    completion = client.chat.completions.create(
-    model="llama3-8b-8192",
-    messages=[
-        {"role": "system", "content": system_prompt + "\n\nRespond ONLY with valid JSON with keys 'selected_path' and 'reasoning'. No markdown, no extra text."},
-        {"role": "user", "content": user_prompt}
-        ]
-    )
-    raw = completion.choices[0].message.content.strip()
-    parsed = json.loads(raw)
-    decision = RouterDecision(**parsed)
-    print(f"\n🧠 [Agent Decision Reasoning]: {decision.reasoning}")
-    return decision.selected_path
+    if data_size > 200:
+        print("🧠 [Agent Router]: Large dataset. Routing to LSTM.")
+        return "LSTM"
+    elif seasonality_ratio > 0.2:
+        print("🧠 [Agent Router]: Seasonality detected. Routing to SARIMA.")
+        return "SARIMA"
+    else:
+        print("🧠 [Agent Router]: No strong seasonality. Routing to ARIMA.")
+        return "ARIMA"
 
 # 3. Main Orchestrator Loop
 def run_autonomous_forecasting_agent(df: pd.DataFrame, target_col: str, business_context: str = "", horizon: int = 30):
