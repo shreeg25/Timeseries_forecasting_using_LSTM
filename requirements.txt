@@ -1,11 +1,9 @@
-numpy==2.0.0
-pandas==2.2.3
+numpy==1.26.4
+pandas==2.1.4
 matplotlib==3.9.3
 seaborn==0.13.2
 statsmodels==0.14.4
 scikit-learn==1.6.0
 statsforecast==2.0.0
 tensorflow==2.18.0
-openai>=1.0.0
 pydantic>=2.0.0
-python-dotenv>=1.0.0
