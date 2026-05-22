@@ -74,7 +74,7 @@ def run_lstm_forecast(data, horizon=30):
                             axis=1)
     
     test_predictions = scaler.inverse_transform(np.array(test_predictions).reshape(-1, 1))
-    
+    last_date = data.index[-1]
     future_index = pd.date_range(start=last_date, periods=horizon + 1, freq='MS')[1:]
     forecast = pd.Series(test_predictions.flatten(), index=future_index)
     
